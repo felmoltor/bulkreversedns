@@ -55,7 +55,7 @@ for ip in `cat $IP_FILE`; do
     valid_ip=$?
     if [[ $valid_ip == 0 ]];then
         
-        echo -e "$ip;$(dig -x $ip @$DNS_SERVER +short)"
+        echo -e "$ip;$(dig -x $ip @$DNS_SERVER +short | tr '\n' ',' | sed s/,$//)"
     else
         echo "Error: $ip is not a valid IP address. Skipping..."
     fi
