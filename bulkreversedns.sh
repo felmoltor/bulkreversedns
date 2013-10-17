@@ -43,7 +43,7 @@ valid_ip=$?
 if [[ $valid_ip == 0 ]];then
     DNS_SERVER=$2
 else 
-    echo "Wrong IP address specification. Using $DNS_SERVER by default"
+    echo "Wrong IP address specification. Using $DNS_SERVER by default" 1>&2
 fi
 
 ########
@@ -57,6 +57,6 @@ for ip in `cat $IP_FILE`; do
         
         echo -e "$ip;$(dig -x $ip @$DNS_SERVER +short | tr '\n' ',' | sed s/,$//)"
     else
-        echo "Error: $ip is not a valid IP address. Skipping..."
+        echo "Error: $ip is not a valid IP address. Skipping..." 1>&2
     fi
 done
