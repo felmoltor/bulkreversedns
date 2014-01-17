@@ -20,6 +20,13 @@ function isValidIP()
     return $stat
 }
 
+#################
+
+function resolveDNSServerName()
+{
+    echo $(dig +short $1 @8.8.8.8)
+}
+
 ##########
 # CONFIG #
 ##########
@@ -42,8 +49,15 @@ isValidIP $2
 valid_ip=$?
 if [[ $valid_ip == 0 ]];then
     DNS_SERVER=$2
-else 
-    echo "Wrong IP address specification. Using $DNS_SERVER by default" 1>&2
+else
+    dns_resuelto=$(resolveDNSServerName $2)
+    isValidIP $dns_resuelto
+    valid_ip=$?
+    if [[ $valid_ip == 0 ]];then
+        DNS_SERVER=$dns_resuelto
+    else
+        echo "Wrong IP address for DNS server. Using $DNS_SERVER by default" 1>&2
+    fi
 fi
 
 ########
