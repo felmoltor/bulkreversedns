@@ -33,6 +33,8 @@ function resolveDNSServerName()
 
 IP_FILE=""
 DNS_SERVER="8.8.8.8"
+SCANRANGE_C=0 
+OUTPUT="$(date +%Y%m%d_%H%M%S).bulkreverse.csv"
 
 ################
 # CHECK PARAMS #
@@ -41,16 +43,20 @@ DNS_SERVER="8.8.8.8"
 if [[ -f $1 ]];then
     IP_FILE=$1
 else
-    echo "Usage: $0 <ip_list_to_reverse_name> [<DNS_server_to_ask>]"
+    echo "Usage: $0 <ip_list_to_reverse_name> <[SCAN_C|NOSCAN_C]> [<DNS_server_to_ask>]"
     exit 1
 fi
 
-isValidIP $2
+if [[ "$2" -eq "SCAN_C" ]];then
+    SCANRANGE_C=1
+fi
+
+isValidIP $3
 valid_ip=$?
 if [[ $valid_ip == 0 ]];then
-    DNS_SERVER=$2
+    DNS_SERVER=$3
 else
-    dns_resuelto=$(resolveDNSServerName $2)
+    dns_resuelto=$(resolveDNSServerName $3)
     isValidIP $dns_resuelto
     valid_ip=$?
     if [[ $valid_ip == 0 ]];then
@@ -64,12 +70,28 @@ fi
 # MAIN #
 ########
 
+# Create output CSV file
+echo "FROM;IP;NAME" > $OUTPUT
+
+
 for ip in `cat $IP_FILE`; do
     isValidIP $ip
     valid_ip=$?
     if [[ $valid_ip == 0 ]];then
-        
-        echo -e "$ip;$(dig -x $ip @$DNS_SERVER +short | tr '\n' ',' | sed s/,$//)"
+        echo "" 
+        echo -e "FILE;$ip;$(dig -x $ip @$DNS_SERVER +short | tr '\n' ',' | sed s/,$//)" >> $OUTPUT 
+        echo -e "=> $ip ->  $(dig -x $ip @$DNS_SERVER +short | tr '\n' ',' | sed s/,$//)" # Now scanning range C of this same address
+        rangec=$(echo "$(echo $ip | cut -f1-3 -d.)")
+        echo ""
+        for octet in `seq 1 254`
+        do
+            # echo " Asking for $rangec.$octet..."
+            ptr=$(host $rangec.$octet $DNS_SERVER | grep -i 'domain name pointer' | awk '{print $5}') 
+            if [[ "$ptr" != "" ]];then
+                echo "SCAN_C;$rangec.$octet;$ptr" >> $OUTPUT
+                echo "  * $ptr -> $rangec.$octet"
+            fi
+        done
     else
         echo "Error: $ip is not a valid IP address. Skipping..." 1>&2
     fi
